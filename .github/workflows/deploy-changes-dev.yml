@@ -1,0 +1,43 @@
+name: deploy-changes-dev
+on:
+  workflow_dispatch:
+    inputs: 
+      deployComfirm: 
+        description: "Confirm deploy ?"
+        required: true
+        default: "Yes"
+        type: choice
+        options: 
+        - "Yes"
+        - "No"
+jobs:
+  build:
+    name: "Deploy changes"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+    strategy:
+      matrix:
+        node-version: [16.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - name: Install & Build dependencies
+      run: npm ci
+    - name: Install Serverless Framework
+      run: npm install -g serverless
+    - name: Create AWS profile
+      run: mkdir -p ~/.aws
+    - name: Create credentials file
+      run: |
+        cat > ~/.aws/credentials << EOF
+        [vc-serverless-admin]
+        aws_access_key_id= ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key= ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        EOF
